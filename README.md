@@ -213,8 +213,9 @@ The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching
 This fork includes an inner-loop gate setup for challenge legality and evidence discipline.
 
 - Runbook: [omargate/training-ready-checklist.md](omargate/training-ready-checklist.md)
-- PR gate workflow: `.github/workflows/pr-inner-loop.yml`
-- Nightly/manual deep audit workflow: `.github/workflows/nightly-deep-audit.yml`
+- PR static gate workflow: `.github/workflows/pr-inner-loop.yml`
+- Omar on-command workflow: `.github/workflows/omar-gate-on-command.yml`
+- Manual deep-audit workflow: `.github/workflows/nightly-deep-audit.yml`
 - Local challenge validators: `scripts/`
 
 ## Support

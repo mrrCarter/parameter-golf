@@ -1,0 +1,59 @@
+name: Omar Gate On Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to scan"
+        required: true
+        type: number
+      scan_mode:
+        description: "Scan mode"
+        required: false
+        default: "deep"
+        type: choice
+        options:
+          - baseline
+          - deep
+          - audit
+      severity_gate:
+        description: "Severity gate"
+        required: false
+        default: "P1"
+        type: choice
+        options:
+          - P0
+          - P1
+          - P2
+          - none
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  omar-gate:
+    name: Omar Gate (Manual)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Omar Gate
+        id: omar
+        uses: ./.github/actions/sentinelayer-v1-action
+        with:
+          sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
+          scan_mode: ${{ inputs.scan_mode }}
+          severity_gate: ${{ inputs.severity_gate }}
+          pr_number: ${{ inputs.pr_number }}
+          spec_binding_mode: auto_discovered
+          model_training_intent: parameter-golf
+
+      - name: Upload Omar artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omar-${{ steps.omar.outputs.run_id }}
+          path: .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+          if-no-files-found: warn

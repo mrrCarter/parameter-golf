@@ -208,6 +208,15 @@ Non-record submissions should be made in the same fashion as SOTA records, as de
 
 The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but the best models should stay in the `/records` folder.
 
+## Fork Automation (Omar + Static Gates)
+
+This fork includes an inner-loop gate setup for challenge legality and evidence discipline.
+
+- Runbook: [omargate/training-ready-checklist.md](omargate/training-ready-checklist.md)
+- PR gate workflow: `.github/workflows/pr-inner-loop.yml`
+- Nightly/manual deep audit workflow: `.github/workflows/nightly-deep-audit.yml`
+- Local challenge validators: `scripts/`
+
 ## Support
 
 

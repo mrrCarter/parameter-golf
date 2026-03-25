@@ -1,31 +1,8 @@
 name: Omar Gate On Command
 
 on:
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: "PR number to scan"
-        required: true
-        type: number
-      scan_mode:
-        description: "Scan mode"
-        required: false
-        default: "deep"
-        type: choice
-        options:
-          - baseline
-          - deep
-          - audit
-      severity_gate:
-        description: "Severity gate"
-        required: false
-        default: "P1"
-        type: choice
-        options:
-          - P0
-          - P1
-          - P2
-          - none
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -34,19 +11,55 @@ permissions:
 
 jobs:
   omar-gate:
-    name: Omar Gate (Manual)
+    name: Omar Gate (Comment Command)
+    if: >
+      github.event.issue.pull_request &&
+      github.actor != 'github-actions[bot]' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      startsWith(github.event.comment.body, '/omar')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Parse comment command
+        id: parse
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          body_lc="$(printf '%s' "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')"
+
+          scan_mode="deep"
+          if [[ "$body_lc" =~ (^|[[:space:]])baseline($|[[:space:]]) ]]; then
+            scan_mode="baseline"
+          elif [[ "$body_lc" =~ (^|[[:space:]])audit($|[[:space:]]) ]] || [[ "$body_lc" =~ full-depth ]]; then
+            scan_mode="audit"
+          fi
+
+          severity_gate="P1"
+          if [[ "$body_lc" =~ (^|[[:space:]])p0($|[[:space:]]) ]]; then
+            severity_gate="P0"
+          elif [[ "$body_lc" =~ (^|[[:space:]])p2($|[[:space:]]) ]]; then
+            severity_gate="P2"
+          elif [[ "$body_lc" =~ (^|[[:space:]])none($|[[:space:]]) ]]; then
+            severity_gate="none"
+          fi
+
+          echo "scan_mode=$scan_mode" >> "$GITHUB_OUTPUT"
+          echo "severity_gate=$severity_gate" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Omar Gate
         id: omar
         uses: ./.github/actions/sentinelayer-v1-action
         with:
           sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
-          scan_mode: ${{ inputs.scan_mode }}
-          severity_gate: ${{ inputs.severity_gate }}
-          pr_number: ${{ inputs.pr_number }}
+          scan_mode: ${{ steps.parse.outputs.scan_mode }}
+          severity_gate: ${{ steps.parse.outputs.severity_gate }}
+          command: ${{ github.event.comment.body }}
+          pr_number: ${{ steps.parse.outputs.pr_number }}
           spec_binding_mode: auto_discovered
           model_training_intent: parameter-golf
 

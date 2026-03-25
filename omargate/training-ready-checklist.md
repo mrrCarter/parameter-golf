@@ -5,16 +5,22 @@ This runbook connects local validation, Omar Gate policy review, and evidence tr
 ## What is wired
 
 - PR static gate: `.github/workflows/pr-inner-loop.yml`
-- Omar on command: `.github/workflows/omar-gate-on-command.yml`
-- Manual deep audit: `.github/workflows/nightly-deep-audit.yml`
+- Omar comment command: `.github/workflows/omar-gate-on-command.yml`
+- Manual static validation: `.github/workflows/nightly-deep-audit.yml`
 - Local Omar action install path: `.github/actions/sentinelayer-v1-action/`
 - Challenge spec for auto-discovery binding: `omargate/parameter-golf-spec.md`
 - Challenge legality scripts: `scripts/`
 
-Omar command workflows run with:
+Omar comment-command workflow runs with:
 
 - `spec_binding_mode: auto_discovered`
 - `model_training_intent: parameter-golf`
+
+Comment commands accepted on PRs (from OWNER/MEMBER/COLLABORATOR):
+
+- `/omar` (defaults to `deep` + `P1`)
+- `/omar baseline`
+- `/omar audit p0`
 
 ## Credentials and prerequisites
 
@@ -80,7 +86,7 @@ For each candidate under `records/track_10min_16mb/<run_name>/`:
 
 ## Progress log (2026-03-24)
 
-- What changed: connected `parameter-golf` workflows to local `sentinelayer-v1-action`, enabled model-training context, added static challenge validation, and switched Omar execution to command-only workflows.
+- What changed: connected `parameter-golf` workflows to local `sentinelayer-v1-action`, enabled model-training context, added static challenge validation, and switched Omar execution to PR comment commands only.
 - Why: remove external version drift, enforce challenge legality continuously, and align Omar context with model-training repos.
 - What we expect to improve: fewer broken PRs, clearer policy routing, and better reproducibility/evidence hygiene before expensive GPU runs.
-- What still needs testing: first manual `Omar Gate On Command` run plus one full candidate evidence cycle (`results/latest_candidate.json` + `results/history.csv` updated from a real training run).
+- What still needs testing: first PR comment command run (`/omar audit p0`) plus one full candidate evidence cycle (`results/latest_candidate.json` + `results/history.csv` updated from a real training run).

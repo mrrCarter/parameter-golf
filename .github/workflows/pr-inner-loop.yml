@@ -1,0 +1,86 @@
+name: Parameter Golf PR Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to scan when run manually"
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  omar-gate:
+    name: Omar Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Omar Gate
+        id: omar
+        uses: ./.github/actions/parameter-golf-omar
+        with:
+          sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
+          scan_mode: deep
+          severity_gate: P1
+          pr_number: ${{ inputs.pr_number }}
+
+      - name: Upload Omar artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omar-${{ steps.omar.outputs.run_id }}
+          path: |
+            .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+            .sentinelayer/context
+          if-no-files-found: warn
+
+  challenge-static:
+    name: Challenge Static Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile Python
+        run: python -m compileall records scripts .github/actions/sentinelayer-v1-action/src .github/actions/parameter-golf-omar/src
+
+      - name: Check submission structure
+        run: python scripts/check_submission.py --root .
+
+      - name: Check forbidden patterns
+        run: python scripts/check_no_forbidden_calls.py --path records
+
+      - name: Check artifact budgets when files exist
+        run: |
+          python scripts/check_artifact.py --candidate-root records --budget-bytes 16000000 --allow-missing-model
+
+      - name: Check assignment limits when reported
+        run: |
+          python scripts/check_assignment_limits.py --candidate-root records --allow-missing
+
+      - name: Optional score regression guard
+        run: |
+          python scripts/score_guard.py \
+            --history results/history.csv \
+            --candidate-json results/latest_candidate.json \
+            --allow-missing
+
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parameter-golf-static
+          path: |
+            results
+            records
+          if-no-files-found: warn

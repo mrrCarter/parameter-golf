@@ -1,0 +1,118 @@
+name: Omar Gate On Command
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to scan"
+        required: true
+        type: number
+      scan_mode:
+        description: "Scan mode"
+        required: false
+        default: "deep"
+        type: choice
+        options:
+          - baseline
+          - deep
+          - audit
+      severity_gate:
+        description: "Severity gate"
+        required: false
+        default: "P1"
+        type: choice
+        options:
+          - P0
+          - P1
+          - P2
+          - none
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  omar-gate:
+    name: Omar On Command
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.issue.pull_request &&
+        github.actor != 'github-actions[bot]' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+        startsWith(github.event.comment.body, '/omar')
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve command inputs
+        id: parse
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_SCAN_MODE: ${{ inputs.scan_mode }}
+          INPUT_SEVERITY_GATE: ${{ inputs.severity_gate }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            scan_mode="${INPUT_SCAN_MODE:-deep}"
+            severity_gate="${INPUT_SEVERITY_GATE:-P1}"
+            pr_number="${INPUT_PR_NUMBER}"
+            command="/omar ${scan_mode}"
+            echo "scan_mode=$scan_mode" >> "$GITHUB_OUTPUT"
+            echo "severity_gate=$severity_gate" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+            echo "command=$command" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          body_lc="$(printf '%s' "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')"
+
+          scan_mode="deep"
+          if [[ "$body_lc" =~ (^|[[:space:]])baseline($|[[:space:]]) ]]; then
+            scan_mode="baseline"
+          elif [[ "$body_lc" =~ (^|[[:space:]])audit($|[[:space:]]) ]] || [[ "$body_lc" =~ full-depth ]]; then
+            scan_mode="audit"
+          fi
+
+          severity_gate="P1"
+          if [[ "$body_lc" =~ (^|[[:space:]])p0($|[[:space:]]) ]]; then
+            severity_gate="P0"
+          elif [[ "$body_lc" =~ (^|[[:space:]])p2($|[[:space:]]) ]]; then
+            severity_gate="P2"
+          elif [[ "$body_lc" =~ (^|[[:space:]])none($|[[:space:]]) ]]; then
+            severity_gate="none"
+          fi
+
+          echo "scan_mode=$scan_mode" >> "$GITHUB_OUTPUT"
+          echo "severity_gate=$severity_gate" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "command=$COMMENT_BODY" >> "$GITHUB_OUTPUT"
+
+      - name: Omar Gate
+        id: omar
+        uses: ./.github/actions/parameter-golf-omar
+        with:
+          sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
+          scan_mode: ${{ steps.parse.outputs.scan_mode }}
+          severity_gate: ${{ steps.parse.outputs.severity_gate }}
+          command: ${{ steps.parse.outputs.command }}
+          pr_number: ${{ steps.parse.outputs.pr_number }}
+
+      - name: Upload Omar artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omar-${{ steps.omar.outputs.run_id }}
+          path: |
+            .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+            .sentinelayer/context
+          if-no-files-found: warn

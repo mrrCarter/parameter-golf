@@ -208,6 +208,28 @@ Non-record submissions should be made in the same fashion as SOTA records, as de
 
 The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but the best models should stay in the `/records` folder.
 
+## Fork Automation (Omar + Static Gates)
+
+This fork includes an inner-loop gate setup for challenge legality and evidence discipline.
+
+- Runbook: [omargate/training-ready-checklist.md](omargate/training-ready-checklist.md)
+- PR static gate workflow: `.github/workflows/pr-inner-loop.yml`
+- PR Omar Gate workflow: `.github/workflows/pr-inner-loop.yml`
+- Omar on-command workflow (comment or manual dispatch): `.github/workflows/omar-gate-on-command.yml`
+- Manual deep-audit workflow: `.github/workflows/nightly-deep-audit.yml`
+- Repo-local training wrapper: `.github/actions/parameter-golf-omar/`
+- Local challenge validators: `scripts/`
+
+PR workflow runs Omar Gate automatically on every PR.
+The training-specific Omar context is isolated in the repo-local wrapper so shared Omar Gate behavior does not need to change for other repos.
+
+Use command workflow for explicit/extra Omar runs:
+
+- `/omar` -> `scan_mode=deep`, `severity_gate=P1`
+- `/omar baseline`
+- `/omar audit p0`
+- Manual `workflow_dispatch` Omar runs should include a PR number so the GitHub App scan has a concrete PR target.
+
 ## Support
 
 

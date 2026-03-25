@@ -214,11 +214,14 @@ This fork includes an inner-loop gate setup for challenge legality and evidence 
 
 - Runbook: [omargate/training-ready-checklist.md](omargate/training-ready-checklist.md)
 - PR static gate workflow: `.github/workflows/pr-inner-loop.yml`
-- Omar comment-command workflow: `.github/workflows/omar-gate-on-command.yml`
-- Manual static validation workflow: `.github/workflows/nightly-deep-audit.yml`
+- PR Omar Gate workflow: `.github/workflows/pr-inner-loop.yml`
+- Omar on-command workflow (comment or manual dispatch): `.github/workflows/omar-gate-on-command.yml`
+- Manual deep-audit workflow: `.github/workflows/nightly-deep-audit.yml`
 - Local challenge validators: `scripts/`
 
-Use PR comments to trigger Omar explicitly (no automatic Omar run in PR workflow):
+PR workflow runs Omar Gate automatically on every PR.
+
+Use command workflow for explicit/extra Omar runs:
 
 - `/omar` -> `scan_mode=deep`, `severity_gate=P1`
 - `/omar baseline`

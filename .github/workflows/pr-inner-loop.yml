@@ -3,6 +3,7 @@ name: Parameter Golf PR Gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,6 +11,30 @@ permissions:
   checks: write
 
 jobs:
+  omar-gate:
+    name: Omar Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Omar Gate
+        id: omar
+        uses: ./.github/actions/sentinelayer-v1-action
+        with:
+          sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
+          scan_mode: deep
+          severity_gate: P1
+          spec_binding_mode: auto_discovered
+          model_training_intent: parameter-golf
+
+      - name: Upload Omar artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omar-${{ steps.omar.outputs.run_id }}
+          path: .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+          if-no-files-found: warn
+
   challenge-static:
     name: Challenge Static Validation
     runs-on: ubuntu-latest

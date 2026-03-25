@@ -3,6 +3,11 @@ name: Parameter Golf Manual Deep Audit
 on:
   workflow_dispatch:
     inputs:
+      pr_number:
+        description: "PR number to audit with Omar deep scan"
+        required: false
+        default: ""
+        type: string
       candidate_dir:
         description: "Candidate folder to validate deeply"
         required: false
@@ -15,27 +20,29 @@ permissions:
 
 jobs:
   omar-deep:
+    if: ${{ inputs.pr_number != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Omar Gate deep audit
         id: omar
-        uses: ./.github/actions/sentinelayer-v1-action
+        uses: ./.github/actions/parameter-golf-omar
         with:
           sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
           scan_mode: deep
           severity_gate: P2
+          pr_number: ${{ inputs.pr_number }}
           wait_timeout_seconds: 1800
-          spec_binding_mode: auto_discovered
-          model_training_intent: parameter-golf
 
       - name: Upload Omar artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: omar-nightly-${{ steps.omar.outputs.run_id }}
-          path: .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+          path: |
+            .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+            .sentinelayer/context
           if-no-files-found: warn
 
   challenge-static-nightly:
@@ -49,7 +56,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile Python
-        run: python -m compileall records scripts .github/actions/sentinelayer-v1-action/src
+        run: python -m compileall records scripts .github/actions/sentinelayer-v1-action/src .github/actions/parameter-golf-omar/src
 
       - name: Check submission structure
         run: python scripts/check_submission.py --root .

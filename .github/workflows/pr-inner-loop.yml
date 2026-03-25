@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to scan when run manually"
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -19,20 +24,21 @@ jobs:
 
       - name: Omar Gate
         id: omar
-        uses: ./.github/actions/sentinelayer-v1-action
+        uses: ./.github/actions/parameter-golf-omar
         with:
           sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
           scan_mode: deep
           severity_gate: P1
-          spec_binding_mode: auto_discovered
-          model_training_intent: parameter-golf
+          pr_number: ${{ inputs.pr_number }}
 
       - name: Upload Omar artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: omar-${{ steps.omar.outputs.run_id }}
-          path: .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+          path: |
+            .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+            .sentinelayer/context
           if-no-files-found: warn
 
   challenge-static:
@@ -46,7 +52,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile Python
-        run: python -m compileall records scripts .github/actions/sentinelayer-v1-action/src
+        run: python -m compileall records scripts .github/actions/sentinelayer-v1-action/src .github/actions/parameter-golf-omar/src
 
       - name: Check submission structure
         run: python scripts/check_submission.py --root .

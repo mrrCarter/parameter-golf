@@ -217,15 +217,18 @@ This fork includes an inner-loop gate setup for challenge legality and evidence 
 - PR Omar Gate workflow: `.github/workflows/pr-inner-loop.yml`
 - Omar on-command workflow (comment or manual dispatch): `.github/workflows/omar-gate-on-command.yml`
 - Manual deep-audit workflow: `.github/workflows/nightly-deep-audit.yml`
+- Repo-local training wrapper: `.github/actions/parameter-golf-omar/`
 - Local challenge validators: `scripts/`
 
 PR workflow runs Omar Gate automatically on every PR.
+The training-specific Omar context is isolated in the repo-local wrapper so shared Omar Gate behavior does not need to change for other repos.
 
 Use command workflow for explicit/extra Omar runs:
 
 - `/omar` -> `scan_mode=deep`, `severity_gate=P1`
 - `/omar baseline`
 - `/omar audit p0`
+- Manual `workflow_dispatch` Omar runs should include a PR number so the GitHub App scan has a concrete PR target.
 
 ## Support
 

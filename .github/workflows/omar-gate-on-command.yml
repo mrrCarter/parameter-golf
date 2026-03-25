@@ -99,20 +99,20 @@ jobs:
 
       - name: Omar Gate
         id: omar
-        uses: ./.github/actions/sentinelayer-v1-action
+        uses: ./.github/actions/parameter-golf-omar
         with:
           sentinelayer_token: ${{ secrets.SENTINELAYER_TOKEN }}
           scan_mode: ${{ steps.parse.outputs.scan_mode }}
           severity_gate: ${{ steps.parse.outputs.severity_gate }}
           command: ${{ steps.parse.outputs.command }}
           pr_number: ${{ steps.parse.outputs.pr_number }}
-          spec_binding_mode: auto_discovered
-          model_training_intent: parameter-golf
 
       - name: Upload Omar artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: omar-${{ steps.omar.outputs.run_id }}
-          path: .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+          path: |
+            .sentinelayer/runs/${{ steps.omar.outputs.run_id }}
+            .sentinelayer/context
           if-no-files-found: warn

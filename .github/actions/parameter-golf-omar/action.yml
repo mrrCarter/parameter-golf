@@ -1,0 +1,97 @@
+name: "Parameter Golf Omar Gate"
+description: "Repo-local Omar Gate wrapper that binds Parameter Golf training context"
+
+inputs:
+  sentinelayer_token:
+    description: "Sentinelayer service token used to authorize run orchestration"
+    required: true
+  scan_mode:
+    description: "Scan mode command mapper"
+    required: false
+    default: "deep"
+  severity_gate:
+    description: "Minimum severity to block merge"
+    required: false
+    default: "P1"
+  provider_installation_id:
+    description: "Optional explicit GitHub App installation id override"
+    required: false
+    default: ""
+  command:
+    description: "Optional explicit slash command override"
+    required: false
+    default: ""
+  pr_number:
+    description: "Optional PR number override"
+    required: false
+    default: ""
+  wait_for_completion:
+    description: "Wait for managed run completion before exiting"
+    required: false
+    default: "true"
+  wait_timeout_seconds:
+    description: "Max wait time for run completion"
+    required: false
+    default: "900"
+  wait_poll_seconds:
+    description: "Polling interval for run status checks"
+    required: false
+    default: "10"
+
+outputs:
+  gate_status:
+    description: "Gate result"
+    value: ${{ steps.omar.outputs.gate_status }}
+  p0_count:
+    description: "Number of P0 findings"
+    value: ${{ steps.omar.outputs.p0_count }}
+  p1_count:
+    description: "Number of P1 findings"
+    value: ${{ steps.omar.outputs.p1_count }}
+  p2_count:
+    description: "Number of P2 findings"
+    value: ${{ steps.omar.outputs.p2_count }}
+  p3_count:
+    description: "Number of P3 findings"
+    value: ${{ steps.omar.outputs.p3_count }}
+  run_id:
+    description: "Run identifier"
+    value: ${{ steps.omar.outputs.run_id }}
+  scan_mode:
+    description: "Effective scan mode"
+    value: ${{ steps.omar.outputs.scan_mode }}
+  severity_gate:
+    description: "Effective severity threshold"
+    value: ${{ steps.omar.outputs.severity_gate }}
+  model_training_intent:
+    description: "Effective training intent"
+    value: ${{ steps.omar.outputs.model_training_intent }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Parameter Golf Omar context
+      id: context
+      shell: bash
+      env:
+        INPUT_SCAN_MODE: ${{ inputs.scan_mode }}
+      run: |
+        set -euo pipefail
+        export PYTHONPATH="${GITHUB_ACTION_PATH}/src:${PYTHONPATH:-}"
+        python -m parameter_golf_omar.main
+
+    - name: Omar Gate
+      id: omar
+      uses: ./.github/actions/sentinelayer-v1-action
+      with:
+        sentinelayer_token: ${{ inputs.sentinelayer_token }}
+        scan_mode: ${{ inputs.scan_mode }}
+        severity_gate: ${{ inputs.severity_gate }}
+        provider_installation_id: ${{ inputs.provider_installation_id }}
+        command: ${{ inputs.command }}
+        pr_number: ${{ inputs.pr_number }}
+        wait_for_completion: ${{ inputs.wait_for_completion }}
+        wait_timeout_seconds: ${{ inputs.wait_timeout_seconds }}
+        wait_poll_seconds: ${{ inputs.wait_poll_seconds }}
+        spec_binding_mode: ${{ steps.context.outputs.spec_binding_mode }}
+        model_training_intent: ${{ steps.context.outputs.model_training_intent }}

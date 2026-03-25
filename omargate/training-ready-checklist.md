@@ -8,12 +8,14 @@ This runbook connects local validation, Omar Gate policy review, and evidence tr
 - PR Omar Gate: `.github/workflows/pr-inner-loop.yml`
 - Omar comment/manual command: `.github/workflows/omar-gate-on-command.yml`
 - Manual deep audit: `.github/workflows/nightly-deep-audit.yml`
+- Parameter Golf Omar wrapper: `.github/actions/parameter-golf-omar/`
 - Local Omar action install path: `.github/actions/sentinelayer-v1-action/`
 - Challenge spec for auto-discovery binding: `omargate/parameter-golf-spec.md`
 - Challenge legality scripts: `scripts/`
 
 Omar Gate workflows run with:
 
+- repo-local Parameter Golf wrapper -> shared Omar Gate action
 - `spec_binding_mode: auto_discovered`
 - `model_training_intent: parameter-golf`
 
@@ -24,6 +26,7 @@ Comment commands accepted on PRs (from OWNER/MEMBER/COLLABORATOR), plus `workflo
 - `/omar` (defaults to `deep` + `P1`)
 - `/omar baseline`
 - `/omar audit p0`
+- Manual `workflow_dispatch` Omar runs should pass a PR number.
 
 ## Credentials and prerequisites
 
@@ -36,7 +39,7 @@ Comment commands accepted on PRs (from OWNER/MEMBER/COLLABORATOR), plus `workflo
 From repo root:
 
 ```bash
-python -m compileall records scripts .github/actions/sentinelayer-v1-action/src
+python -m compileall records scripts .github/actions/sentinelayer-v1-action/src .github/actions/parameter-golf-omar/src
 python scripts/check_submission.py --root .
 python scripts/check_no_forbidden_calls.py --path records
 python scripts/check_artifact.py --candidate-root records --budget-bytes 16000000 --allow-missing-model
@@ -91,6 +94,7 @@ For each candidate under `records/track_10min_16mb/<run_name>/`:
 
 - What changed: connected `parameter-golf` workflows to local `sentinelayer-v1-action`, enabled model-training context, added static challenge validation, and switched Omar execution to PR comment commands only.
 - What changed: connected `parameter-golf` workflows to local `sentinelayer-v1-action`, enabled model-training context, added static challenge validation, restored automatic PR Omar Gate, and retained on-command Omar runs.
+- What changed: moved Parameter Golf-specific Omar context into a repo-local wrapper action instead of wiring training intent directly in shared workflow calls.
 - Why: remove external version drift, enforce challenge legality continuously, and align Omar context with model-training repos.
 - What we expect to improve: fewer broken PRs, clearer policy routing, and better reproducibility/evidence hygiene before expensive GPU runs.
 - What still needs testing: first PR comment command run (`/omar audit p0`) plus one full candidate evidence cycle (`results/latest_candidate.json` + `results/history.csv` updated from a real training run).
